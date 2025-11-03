@@ -1,37 +1,50 @@
 import React, { useState, useEffect } from "react";
 import "./RecordPage.css";
 import { useNavigate } from "react-router-dom";
+import { useProblem } from "../ProblemContext";
 
 export default function RecordPage() {
   const navigate = useNavigate();
-  
-  // 더미 데이터 (나중에 실제 데이터로 교체)
-  const records = [
-    {
-      id: 1,
-      level: 1,
-      title: "Hello World 출력하기",
-      date: "2024.11.02",
-      solved: true,
-      attempts: 3
-    },
-    {
-      id: 2,
-      level: 1,
-      title: "두 수의 합 구하기",
-      date: "2024.11.01",
-      solved: true,
-      attempts: 2
-    },
-    {
-      id: 3,
-      level: 2,
-      title: "배열 최댓값 찾기",
-      date: "2024.10.31",
-      solved: false,
-      attempts: 5
+  const { setResponse } = useProblem();
+  const username = "testuser";
+
+  const [records, setRecords] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  // 목록 로드
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`http://localhost:8080/api/sessions?username=${encodeURIComponent(username)}`);
+        const data = await res.json();
+        setRecords(Array.isArray(data) ? data : []);
+      } catch (e) {
+        console.error(e);
+        setRecords([]);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [username]);
+
+  // 다시보기
+  const onReplay = async (id) => {
+    try {
+      const res = await fetch(`http://localhost:8080/api/problems/by-session?sessionId=${id}`);
+      if (!res.ok) return;
+      const text = await res.text();
+
+      // 세션ID 저장 (이후 힌트/정답 카운트에 사용)
+      sessionStorage.setItem("sessionId", id);
+
+      // 문제 복원
+      setResponse({ reply: text, isProblem: true });
+      navigate("/main");
+    } catch (e) {
+      console.error(e);
     }
-  ];
+  };
 
   return (
     <div className="Recode-container">
@@ -41,33 +54,30 @@ export default function RecordPage() {
             <h2 className="page-title">대화 기록</h2>
           </div>
 
+          {loading && <p style={{ padding: 16 }}>불러오는 중...</p>}
+
           <div className="records-container">
-            {records.map((record) => (
-              <div key={record.id} className="RecordBox">
+            {records.map((r) => (
+              <div key={r.id} className="RecordBox">
                 <div className="record-header">
-                  <div className="level-badge">
-                    레벨 {record.level}
-                  </div>
-                  <div className={`status-badge ${record.solved ? 'solved' : 'pending'}`}>
-                    {record.solved ? '✓ 성공' : ' 실패 '}
+                  <div className="level-badge">레벨 {r.difficulty ?? "-"}</div>
+                  <div className={`status-badge ${r.solved ? 'solved' : 'pending'}`}>
+                    {r.solved ? '✓ 성공' : ' 실패 '}
                   </div>
                 </div>
 
-                <h3 className="record-title">{record.title}</h3>
+                <h3 className="record-title">{r.title ?? "제목 없음"}</h3>
 
                 <div className="record-footer">
                   <div className="record-info">
                     <span className="info-item">
-                      📅 {record.date}
+                      📅 {r.createdAt ? new Date(r.createdAt).toLocaleString() : "-"}
                     </span>
                     <span className="info-item">
-                      🔄 {record.attempts}번 시도
+                      🔄 {(r.hintsUsed ?? 0)}번 시도
                     </span>
                   </div>
-                  <button 
-                    className="view-button"
-                    onClick={() => navigate(`/problem/${record.id}`)}
-                  >
+                  <button className="view-button" onClick={() => onReplay(r.id)}>
                     다시보기
                   </button>
                 </div>
@@ -75,7 +85,7 @@ export default function RecordPage() {
             ))}
           </div>
 
-          {records.length === 0 && (
+          {(!loading && records.length === 0) && (
             <div className="empty-state">
               <div className="empty-icon">📝</div>
               <p className="empty-text">아직 기록이 없어요!</p>
@@ -84,6 +94,6 @@ export default function RecordPage() {
           )}
         </div>
       </div>
-  </div>
+    </div>
   );
 }
