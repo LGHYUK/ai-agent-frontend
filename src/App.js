@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Routes, Route, Link, useNavigate } from "react-router-dom";
 import "./App.css";
 import CorrectPage from './Pages/Correct';
@@ -23,10 +23,30 @@ function App() {
   const navigate = useNavigate();
   const { message, setMessage, setResponse } = useProblem();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const { resetAll } = useResult();
+  const { hint, correct, timer, level, resetAll, selectedLevel, setSelectedLevel } = useResult(); // 힌트 사용한 횟수,정답 보낸 횟수 ,소요시간 세서 정답 페이지로 보내는 전역변수
+  
 
-  const [selectedLevel, setSelectedLevel] = useState(1);
-  const username = "testuser";
+  const userId = 1;
+
+  // 앱 처음 로딩 시, 사용자 레벨을 백엔드에서 읽어와서 selectedLevel 세팅
+  useEffect(() => {
+    const loadUserLevel = async () => {
+      try {
+        const res = await fetch(`http://localhost:8080/api/users/${userId}/level`);
+        if (!res.ok) {
+          console.error("레벨 조회 실패:", res.status);
+          return;
+        }
+        const level = await res.json();   // 예: 3
+        console.log("서버에서 받아온 level =", level);
+        setSelectedLevel(level);
+      } catch (e) {
+        console.error("레벨 로드 중 오류:", e);
+      }
+    };
+
+    loadUserLevel();
+  }, [userId, setSelectedLevel]);
 
   const toggleSidebar = () => setIsSidebarOpen(v => !v);
 
@@ -34,7 +54,7 @@ function App() {
   const fetchProblemByLevel = async () => {
     try {
       const res = await fetch(
-        `http://localhost:8080/api/problems/random-by-level?level=${selectedLevel}&username=${encodeURIComponent(username)}`
+        `http://localhost:8080/api/problems/random-by-level?level=${selectedLevel}&userId=${userId}`
       );
 
       if (res.status === 204) {
@@ -58,6 +78,7 @@ function App() {
 
       const text = await res.text(); // 문제 표시 문자열
       setResponse({ reply: text, isProblem: true });
+      console.log("보내는 userId :", userId);
       resetAll(); // 전역 상태 초기화
       navigate("/main");
     } catch (err) {
@@ -75,7 +96,7 @@ function App() {
       const res = await fetch("http://localhost:8080/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, message }),
+        body: JSON.stringify({ userID, message }),
       });
       const data = await res.json();
       setResponse(data);
@@ -121,7 +142,8 @@ function App() {
           element={
             <main className="Maincontainer">
               <div className="mainText">
-                <h1>AI와 코딩 문제를 풀어보세요!</h1>
+                <h1>AI와 함께하는 인터랙티브 코딩 챌린지</h1>
+                <p> 대화로 배우는 코딩, AI와 함께 성장하세요</p>
                 <div className="M_input-area">
                   <label>
                     문제 난이도 선택:&nbsp;
@@ -130,19 +152,14 @@ function App() {
                       value={selectedLevel}
                       onChange={(e) => setSelectedLevel(Number(e.target.value))}
                     >
-                      {[...Array(9)].map((_, i) => (
+                      {[...Array(8)].map((_, i) => (
                         <option key={i + 1} value={i + 1}>
                           레벨 {i + 1}
                         </option>
                       ))}
                     </select>
                   </label>
-                  <input
-                    type="text"
-                    placeholder="문제를 입력하세요..."
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                  />
+                  
                 </div>
                 <button className="EnterBtn" onClick={fetchProblemByLevel}>
                   문제 풀이
