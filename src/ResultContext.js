@@ -8,8 +8,11 @@ export function ResultProvider({ children }) {
   const [Hintnum, setHintnum] = useState(1);//힌트사용횟수
   const [Correctnum, setCorrectnum] = useState(0);//정답 시도 횟수
   const [몇초, 몇초걸림] = useState(0);//소요시간(백엔드에서 가져오기?)
+  const [selectedLevel, setSelectedLevel] = useState(1);  //레벨 설정
   const [다음레벨, 다음레벨설정] = useState(0);//다음 문제 가져올 레벨(+1)
 
+  
+///변수 길어지니까 요약 변수 만들기
   const hint = { Hintnum, setHintnum };
   const correct = { Correctnum, setCorrectnum };
   const timer = { 몇초, 몇초걸림 };
@@ -26,7 +29,7 @@ export function ResultProvider({ children }) {
       hint, 
       correct,
       timer,  
-      level, resetAll
+      level, resetAll, selectedLevel, setSelectedLevel
     }}>
       {children}
     </ResultContext.Provider>

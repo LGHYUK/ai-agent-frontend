@@ -85,6 +85,13 @@
   color: #666;
 }
 
+/* 기록 페이지에서만 chat-container 높이 수정 */
+.record-wrapper .chat-container {
+  height: 80vh; 
+  max-height: auto;
+  overflow: hidden;
+}
+
 /* 기록 제목 */
 .record-title {
   font-size: 20px;
